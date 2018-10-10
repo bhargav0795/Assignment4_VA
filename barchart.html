@@ -1,158 +1,141 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
-<head>
-    <style>
-        .h1{
-            text-align: center;
+<html>
+    <head>
+        <title>D3 example</title>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+
+        <style type="text/css">
+        .mycircle {
+          fill: blue; 
+          stroke: red; 
+          stroke-width: 5;
         }
-        .rectangle {
-            fill: indianred;
+        svg .myrect {
+            fill: blue;
+            stroke-width: 0px;
         }
-        .rectangle:hover {
-            fill: orange;
+        svg .projection {
+          fill: white;
         }
-        .axis {
-            font: 10px sans-serif;
-        }
-
-        .axis path,
-        .axis line {
-            fill: none;
-            stroke: #000;
-            shape-rendering: crispEdges;
-        }
-
-    </style>
-</head>
-<body>
-<h1><center>PASSNYC</center></h1>
-<h2><center>Student Demographics - Corona City</center></h2>
-<div id="drop" align=center></div>
-<script src="http://d3js.org/d3.v3.min.js"></script>
-<script>
-
-    var margin = {top: 80, right: 180, bottom: 80, left: 180},
-        width = 960 - margin.left - margin.right,
-        height = 500 - margin.top - margin.bottom;
-
-    var svg = d3.select("body").append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    d3.csv("./demographics.csv", function(error, data){
-
-        // filter year
-
-        // Get every column value
-        var elements = Object.keys(data[0])
-            .filter(function(d){
-                return ((d != "Year") & (d != "School_Name"));
-            });
-        var selection = elements[0];
-
-        var y = d3.scale.linear()
-            .domain([0, d3.max(data, function(d){
-                return +d[selection];
-            })])
-            .range([height, 0]);
-
-        var x = d3.scale.ordinal()
-            .domain(data.map(function(d){ return d.School_Name;}))
-            .rangeBands([0, width]);
-
-
-        var xAxis = d3.svg.axis()
-            .scale(x)
-            .orient("bottom");
-
-        var yAxis = d3.svg.axis()
-            .scale(y)
-            .orient("left");
-
-        svg.append("g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0," + height + ")")
-            .call(xAxis)
-            .selectAll("text")
-            .style("font-size", "8px")
-            .style("text-anchor", "end")
-            .attr("dx", "-.8em")
-            .attr("dy", "-.55em")
-            .attr("transform", "rotate(-90)" );
-
-
-        svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis);
-
-        svg.selectAll("rectangle")
-            .data(data)
-            .enter()
-            .append("rect")
-            .attr("class","rectangle")
-            .attr("width", width/data.length)
-            .attr("height", function(d){
-                return height - y(+d[selection]);
-            })
-            .attr("x", function(d, i){
-                return (width / data.length) * i ;
-            })
-            .attr("y", function(d){
-                return y(+d[selection]);
-            })
-            .append("title")
-            .text(function(d){
-                return d.State + " : " + d[selection];
-            });
-
-        var selector = d3.select("#drop")
-            .append("select")
-            .attr("id","dropdown")
-            .on("change", function(d){
-                selection = document.getElementById("dropdown");
-
-                y.domain([0, d3.max(data, function(d){
-                    return +d[selection.value];})]);
-
-                yAxis.scale(y);
-
-                d3.selectAll(".rectangle")
-                    .transition()
-                    .attr("height", function(d){
-                        return height - y(+d[selection.value]);
+        </style>
+        
+        <script type="text/javascript">
+            var myData;
+			var min;
+			var max;
+            function loadData()
+            {
+              d3.csv("https://raw.githubusercontent.com/akshaybankar47/VA_Assignment3/master/losses2015_transformed.csv")
+                .then(function(data)
+              {
+                myData = data;
+				
+				
+				
+				var byName = d3.nest()
+				.key(function(d) { return d.Damage_Descp; })
+				.rollup(function(d){ return d3.sum(d,function(g){return g.Amount;})})
+				.entries(myData);
+				byName.sort(function(x,y){
+					return d3.ascending(x.value,y.value);
+				});
+				console.log(byName[32].value)
+				xscale=d3.scaleLinear().domain([byName[0].value,byName[32].value]).range([0,500]);
+				ticks=xscale.ticks(5);
+				console.log(xscale(byName[32].value))
+				//ticks=[0,500,1000,1500,2000,2500,3000]
+					console.log(ticks)
+				yscale=d3.scaleLinear();
+                createBarChart(byName);
+				//console.log(byName);
+              });
+            }
+            function createBarChart(byName) {
+			var xAxis=d3.axisBottom().scale(xscale);
+			//ticks=[0,500,1000,1500,2000,2500];
+			//padding=[10,10,10,10,10,10];
+			xAxis.tickValues(ticks).tickFormat(function(d){return d/1000000+"M" });
+			var counter=0;
+              var svg = d3.select("body")
+                          .append("svg")
+                          .attr("width", 1200)
+                          .attr("height", 1500)
+						  .attr("margin",10);
+              // generate bars
+              svg.selectAll("g")
+                  .data(byName)
+                  .enter()
+                  .append("rect")
+                  .attr("x", 225)
+                  .attr("y", function(d, i)
+                    {
+						
+                      return (i+1)*(20+2);
                     })
-                    .attr("x", function(d, i){
-                        return (width / data.length) * i ;
+                  .attr("height", 20)
+                  .attr("width", function(d, i)
+                    {
+						//console.log(xscale(d.value))
+						//console.log(i)
+						//console.log(d.Amount)
+						//console.log(1500-xscale(i))
+					   
+                      return xscale(d.value);
+					
                     })
-                    .attr("y", function(d){
-                        return y(+d[selection.value]);
+                  .attr("class", "myrect");
+              // generate labels
+			  
+              svg.selectAll("text.Damage_Descp")
+                  .data(byName)
+                  .enter()
+                  .append("text")
+                  .text(function(d, i)
+                    {
+						
+						//console.log(d)
+                      return d.key;
                     })
-                    .ease("linear")
-                    .select("title")
-                    .text(function(d){
-                        return d.School_Name + " : " + d[selection.value];
+                  .attr("x", 0)
+                  .attr("y", function(d, i)
+                    {
+                      return (i+1)*(20+2) + 15;
                     });
+					svg.append("line")
+					.style("stroke","black")
+					.attr("x1",220)
+					.attr("y1",22)
+					.attr("x2",220)
+					.attr("y2",745)
+					
+				svg.append("g").attr("class","axis").attr("transform","translate(220,745)").call(xAxis)	
+              // generate labels
+              /*svg.selectAll("text.projection")
+                  .data(byName)
+                  .enter()
+                  .append("text")
+                  .text(function(d, i)
+                    {
+                      return d.Amount + " mil";
+                    })
+                  .attr("x", function(d, i)
+                    {
+                      return d.Amount-10;
+                    })
+                  .attr("class", "projection")
+                  .attr("y", function(d, i)
+                    {
+                      return (i+1)*(20+2) + 15;
+                    });*/
+            }
+            window.onload = loadData;
+        </script>
 
-                d3.selectAll("g.y.axis")
-                    .transition()
-                    .call(yAxis);
 
-            });
-
-        selector.selectAll("option")
-            .data(elements)
-            .enter().append("option")
-            .attr("value", function(d){
-                return d;
-            })
-            .text(function(d){
-                return d;
-            })
+    </head>
 
 
-    });
+    <body>
 
-</script>
-</body>
+    </body>
+</html>
