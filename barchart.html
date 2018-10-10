@@ -1,105 +1,108 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>D3 example</title>
-        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <title>Losses 2015 - States</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
 
         <style type="text/css">
-        .mycircle {
-          fill: blue; 
-          stroke: red; 
-          stroke-width: 5;
-        }
-        svg .myrect {
-            fill: blue;
+
+        svg .bars {
+            fill: green;
             stroke-width: 0px;
         }
         svg .projection {
           fill: white;
         }
+        .mycircle {
+          fill: blue;
+          stroke: red;
+          stroke-width: 5;
+        }
         </style>
-        
+
         <script type="text/javascript">
-            var myData;
-			var min;
-			var max;
+            var loss_data;
+			      var min;
+			      var max;
+            var div = d3.select("body").append("div")
+              .attr("class", "tooltip")
+              .style("opacity", 0);
             function loadData()
             {
-              d3.csv("https://raw.githubusercontent.com/akshaybankar47/VA_Assignment3/master/losses2015_transformed.csv")
+              d3.csv("https://raw.githubusercontent.com/bhargav0795/Assignment4_VA/master/Data/losses2015_transformed.csv")
                 .then(function(data)
               {
-                myData = data;
-				
-				
-				
-				var byName = d3.nest()
+                loss_data = data;
+
+				var Damage_Desc_Name = d3.nest()
 				.key(function(d) { return d.Damage_Descp; })
 				.rollup(function(d){ return d3.sum(d,function(g){return g.Amount;})})
-				.entries(myData);
-				byName.sort(function(x,y){
+				.entries(loss_data);
+				Damage_Desc_Name.sort(function(x,y){
 					return d3.ascending(x.value,y.value);
 				});
-				console.log(byName[32].value)
-				xscale=d3.scaleLinear().domain([byName[0].value,byName[32].value]).range([0,500]);
+
+				xscale=d3.scaleLinear().domain([Damage_Desc_Name[0].value,Damage_Desc_Name[32].value]).range([0,1000]);
 				ticks=xscale.ticks(5);
-				console.log(xscale(byName[32].value))
-				//ticks=[0,500,1000,1500,2000,2500,3000]
-					console.log(ticks)
 				yscale=d3.scaleLinear();
-                createBarChart(byName);
-				//console.log(byName);
+                createBarChart(Damage_Desc_Name);
+
               });
             }
-            function createBarChart(byName) {
-			var xAxis=d3.axisBottom().scale(xscale);
-			//ticks=[0,500,1000,1500,2000,2500];
-			//padding=[10,10,10,10,10,10];
-			xAxis.tickValues(ticks).tickFormat(function(d){return d/1000000+"M" });
+      function createBarChart(Damage_Desc_Name) {
+			var x_axis=d3.axisBottom().scale(xscale);
+			x_axis.tickValues(ticks).tickFormat(function(d){return d/1000000+"M" });
 			var counter=0;
               var svg = d3.select("body")
                           .append("svg")
-                          .attr("width", 1200)
-                          .attr("height", 1500)
-						  .attr("margin",10);
+                          .attr("width", 1000)
+                          .attr("height", 800)
+						  .attr("margin",20);
               // generate bars
               svg.selectAll("g")
-                  .data(byName)
+                  .data(Damage_Desc_Name)
                   .enter()
                   .append("rect")
                   .attr("x", 225)
                   .attr("y", function(d, i)
                     {
-						
                       return (i+1)*(20+2);
                     })
-                  .attr("height", 20)
+                  .attr("height",10)
                   .attr("width", function(d, i)
                     {
-						//console.log(xscale(d.value))
-						//console.log(i)
-						//console.log(d.Amount)
-						//console.log(1500-xscale(i))
-					   
-                      return xscale(d.value);
-					
+					 return xscale(d.value);
+
                     })
-                  .attr("class", "myrect");
+                  .attr("class", "bars")
+                  .on("mouseover", function(d) {
+                    console.log("tooltip",);
+                    div.transition().duration(300)
+                    .style("opacity", 1)
+                    div.text(d.key + " : " + d.value)
+                    .style("left", (d3.event.pageX) + "px")
+                    .style("top", (d3.event.pageY -30) + "px");
+                  })
+                  .on("mouseout", function() {
+
+
+                    div.transition().duration(300)
+                    .style("opacity", 0);
+                  });
               // generate labels
-			  
+
               svg.selectAll("text.Damage_Descp")
-                  .data(byName)
+                  .data(Damage_Desc_Name)
                   .enter()
                   .append("text")
                   .text(function(d, i)
                     {
-						
-						//console.log(d)
                       return d.key;
                     })
                   .attr("x", 0)
                   .attr("y", function(d, i)
                     {
-                      return (i+1)*(20+2) + 15;
+                      return (i+1)*(20+2) + 20;
                     });
 					svg.append("line")
 					.style("stroke","black")
@@ -107,26 +110,8 @@
 					.attr("y1",22)
 					.attr("x2",220)
 					.attr("y2",745)
-					
-				svg.append("g").attr("class","axis").attr("transform","translate(220,745)").call(xAxis)	
-              // generate labels
-              /*svg.selectAll("text.projection")
-                  .data(byName)
-                  .enter()
-                  .append("text")
-                  .text(function(d, i)
-                    {
-                      return d.Amount + " mil";
-                    })
-                  .attr("x", function(d, i)
-                    {
-                      return d.Amount-10;
-                    })
-                  .attr("class", "projection")
-                  .attr("y", function(d, i)
-                    {
-                      return (i+1)*(20+2) + 15;
-                    });*/
+
+				svg.append("g").attr("class","axis").attr("transform","translate(220,745)").call(x_axis)
             }
             window.onload = loadData;
         </script>
